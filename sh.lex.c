@@ -537,6 +537,10 @@ getdol(void)
     switch (c) {
 
     case '<':
+	if ((c = getC(0)) == '<')
+	    Strbuf_append1(&name, c);
+	else
+	    ungetD(c);
     case '$':
     case '!':
 	if (special)

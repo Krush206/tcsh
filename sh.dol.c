@@ -449,6 +449,12 @@ Dgetdol(void)
 
     case '<'|QUOTE: {
 	static struct Strbuf wbuf; /* = Strbuf_INIT; */
+	int eof = 0;
+
+	if ((c = DgetC(0)) == ('<' | QUOTE))
+	    eof = 1;
+	else
+	    unDgetC(c);
 
 	if (bitset)
 	    stderror(ERR_NOTALLOWED, "$?<");
@@ -485,7 +491,7 @@ Dgetdol(void)
 		if (cbp != (size_t)len)
 		    memmove(cbuf, cbuf + len, cbp - len);
 		cbp -= len;
-		if (wc == '\n')
+		if (eof ? wc == DEOF : wc == '\n')
 		    break;
 		Strbuf_append1(&wbuf, wc);
 	    }
@@ -503,7 +509,7 @@ Dgetdol(void)
 		if (cbp != (size_t)len)
 		    memmove(cbuf, cbuf + len, cbp - len);
 		cbp -= len;
-		if (wc == '\n')
+		if (eof ? wc == DEOF : wc == '\n')
 		    break;
 		Strbuf_append1(&wbuf, wc);
 	    }
