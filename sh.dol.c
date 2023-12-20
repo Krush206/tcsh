@@ -449,6 +449,8 @@ Dgetdol(void)
 
     case '<'|QUOTE: {
 	static struct Strbuf wbuf; /* = Strbuf_INIT; */
+	static DIR *dfd;
+	static int past;
 
 	if (bitset)
 	    stderror(ERR_NOTALLOWED, "$?<");
@@ -457,7 +459,20 @@ Dgetdol(void)
 	if (length)
 	    stderror(ERR_NOTALLOWED, "$%<");
 	wbuf.len = 0;
-	{
+	if (!past && (dfd || (dfd = fdopendir(OLDSTD)))) {
+	    struct dirent *dent = readdir(dfd);
+	    Char STRdotdot[] = { STRdot[0], STRdot[0], 0 };
+
+	    if (dent &&
+		Strcmp(str2short(dent->d_name), STRdot) &&
+		Strcmp(str2short(dent->d_name), STRdotdot))
+		Strbuf_append(&wbuf, str2short(dent->d_name));
+	    else {
+		past = 1;
+		closedir(dfd);
+	    }
+	    Strbuf_terminate(&wbuf);
+	} else {
 	    char cbuf[MB_LEN_MAX];
 	    size_t cbp = 0;
 	    int old_pintr_disabled;
