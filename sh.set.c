@@ -46,7 +46,7 @@ static	void		 asx		(Char *, int, Char *);
 static	struct varent 	*getvx		(Char *, int);
 static	Char		*xset		(Char *, Char ***);
 static	Char		*operate	(int, Char *, Char *);
-static	void	 	 putn1		(tcsh_number_t);
+static	void	 	 putn1		(unsigned tcsh_number_t);
 static	struct varent	*madrof		(Char *, struct varent *);
 static	void		 unsetv1	(struct varent *);
 static	void		 exportpath	(Char **);
@@ -519,12 +519,12 @@ operate(int op, Char *vp, Char *p)
 static Char *putp;
 
 Char *
-putn(tcsh_number_t n)
+putn(unsigned tcsh_number_t n)
 {
     Char nbuf[1024]; /* Enough even for octal */
 
     putp = nbuf;
-    if (n < 0) {
+    if (n & ~(~(unsigned tcsh_number_t) 0 >> 1)) {
 	n = -n;
 	*putp++ = '-';
     }
@@ -534,17 +534,17 @@ putn(tcsh_number_t n)
 }
 
 static void
-putn1(tcsh_number_t n)
+putn1(unsigned tcsh_number_t n)
 {
     if (n > 9)
 	putn1(n / 10);
     *putp++ = (Char)(n % 10 + '0');
 }
 
-tcsh_number_t
+unsigned tcsh_number_t
 getn(const Char *cp)
 {
-    tcsh_number_t n;
+    unsigned tcsh_number_t n;
     int     sign;
     int base;
 
