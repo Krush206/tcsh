@@ -497,12 +497,8 @@ doexit(Char **v, struct command *c)
 	if (*v)
 	    stderror(ERR_NAME | ERR_EXPRESSION);
     }
-    btoeof();
-#if 0
-    if (intty)
-#endif
-    /* Always close, why only on ttys? */
-	xclose(SHIN);
+    /* The final behavior
+     * should be handled in execute. */
 }
 
 /*ARGSUSED*/

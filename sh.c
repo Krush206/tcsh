@@ -1438,8 +1438,11 @@ done:
     /* Take care of these (especially HUP) here instead of inside flush. */
     handle_pending_signals();
     if (intty) {
+	int print = !(bname && !strcmp(bname, "exit"));
+
 	if (loginsh) {
-	    xprintf("logout\n");
+	    if (print)
+		xprintf("logout\n");
 	    xclose(SHIN);
 	    child = 1;
 #ifdef TESLA
@@ -1447,9 +1450,8 @@ done:
 #endif				/* TESLA */
 	    goodbye(NULL, NULL);
 	}
-	else {
+	else if (print)
 	    xprintf("exit\n");
-	}
     }
     record();
     exitstat();
