@@ -2719,3 +2719,10 @@ getYN(const char *prompt)
 	continue;
     return doit;
 }
+
+void
+dotest(Char **v, struct command *c)
+{
+    v++;
+    setstatus(!expr(&v));
+}
