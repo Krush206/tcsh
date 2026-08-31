@@ -85,6 +85,7 @@ static	void		 keywret2	(struct CommandList **);
 static	void		 keywret3	(struct CommandList **);
 static	void		 keywret4	(struct CommandList **);
 static	void		 keywret5	(struct CommandList **);
+static	int		 kwprop		(struct CommandList *);
 
 struct CommandList fntmp = { NULL,
 			     &fntmp,
@@ -1160,6 +1161,13 @@ fnexec(struct CommandList **lp,
 
     for (ptr = *lp; ptr != hp; ptr = ptr->next) {
 	execute(ptr->t, wanttty, NULL, NULL, do_glob);
+	switch (kwprop(ptr)) {
+	case 1:
+	    return;
+	case 2:
+	    hp->ret = hp->enc->ret = !hp->ret;
+	    return;
+	}
 	switch (ptr->type) {
 	case TC_FOREACH:
 	    feexec(&ptr, wanttty, do_glob);
@@ -1204,6 +1212,8 @@ wlexec(struct CommandList **lp, volatile int wanttty, int do_glob)
     while (!top->ret) {
 	ptr = top->next;
 	fnexec(&ptr, end, wanttty, do_glob);
+	if (top->ret)
+	    break;
 	execute(top->t, wanttty, NULL, NULL, do_glob);
     }
 }
@@ -1476,4 +1486,20 @@ keywret5(struct CommandList **lp)
     while (ptr->type != TC_ENDIF)
 	ptr = ptr->next;
     *lp = ptr;
+}
+
+static int
+kwprop(struct CommandList *lp)
+{
+    struct CommandList *ptr;
+    const struct biltins *volatile bp;
+
+    ptr = lp;
+    if ((bp = isbfunc(ptr->t)) == NULL)
+	return 0;
+    if (bp->bfunct == docontin)
+	return 1;
+    if (bp->bfunct == dobreak)
+	return 2;
+    return 0;
 }
