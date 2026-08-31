@@ -185,7 +185,6 @@ extern	void		  wfree		(void);
 extern	void		  dobuiltins	(Char **, struct command *);
 extern	void		  reexecute	(struct command *);
 extern  int		  getYN		(const char *);
-extern	struct CommandList *retlist	(struct command *);
 
 /*
  * sh.glob.c
