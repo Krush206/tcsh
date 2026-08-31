@@ -62,6 +62,8 @@ static	void	toend		(void);
 static	void	xecho		(int, Char **);
 static	int	islocale_var	(Char *);
 static	void	wpfree		(struct whyle *);
+static	int	srchenc		(struct CommandList *);
+static	struct CommandList *retlist(struct command *);
 
 const struct biltins *
 isbfunc(struct command *t)
@@ -492,6 +494,14 @@ dobreak(Char **v, struct command *c)
 {
     USE(v);
     USE(c);
+    if (c->t_dflg & F_LINE) {
+	struct CommandList *ptr;
+
+	ptr = retlist(c);
+	if (!srchenc(ptr))
+	    stderror(ERR_NAME | ERR_NOTWHILE);
+	return;
+    }
     if (whyles == NULL)
 	stderror(ERR_NAME | ERR_NOTWHILE);
     if (!noexec)
@@ -675,6 +685,14 @@ docontin(Char **v, struct command *c)
 {
     USE(v);
     USE(c);
+    if (c->t_dflg & F_LINE) {
+	struct CommandList *ptr;
+
+	ptr = retlist(c);
+	if (!srchenc(ptr))
+	    stderror(ERR_NAME | ERR_NOTWHILE);
+	return;
+    }
     if (!whyles)
 	stderror(ERR_NAME | ERR_NOTWHILE);
     if (!noexec)
@@ -2761,7 +2779,7 @@ getYN(const char *prompt)
     return doit;
 }
 
-struct CommandList *
+static struct CommandList *
 retlist(struct command *t)
 {
     struct CommandList *ptr;
@@ -2770,4 +2788,19 @@ retlist(struct command *t)
     while (ptr->t != t)
 	ptr = ptr->next;
     return ptr;
+}
+
+static int
+srchenc(struct CommandList *lp)
+{
+    struct CommandList *ptr;
+
+    for (ptr = lp; ptr != &fntmp; ptr = ptr->prev)
+	switch (ptr->type) {
+	case TC_WHILE:
+	    return 1;
+	case TC_FOREACH:
+	    return 2;
+	}
+    return 0;
 }
