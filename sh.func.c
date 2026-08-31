@@ -654,6 +654,14 @@ doend(Char **v, struct command *c)
 {
     USE(v);
     USE(c);
+    if (c->t_dflg & F_LINE) {
+	struct CommandList *ptr;
+
+	ptr = retlist(c);
+	if (ptr->enc == NULL)
+	    stderror(ERR_NAME | ERR_NOTWHILE);
+	return;
+    }
     if (!whyles)
 	stderror(ERR_NAME | ERR_NOTWHILE);
     btell(&whyles->w_end);
