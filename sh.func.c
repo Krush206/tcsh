@@ -362,6 +362,13 @@ doif(Char **v, struct command *kp)
 	if (*++vv)
 	    stderror(ERR_NAME | ERR_IMPRTHEN);
 	setname(short2str(STRthen));
+	if (kp->t_dflg & F_LINE) {
+	    struct CommandList *ptr;
+
+	    ptr = retlist(kp);
+	    ptr->enc->ret = ptr->ret = i;
+	    return;
+	}
 	/*
 	 * If expression was zero, then scan to else , otherwise just fall into
 	 * following code.
@@ -404,8 +411,11 @@ doelse (Char **v, struct command *c)
 {
     USE(c);
     USE(v);
-    if (!noexec)
+    if (!noexec) {
+	if (c->t_dflg & F_LINE)
+	    return;
 	search(TC_ELSE, 0, NULL);
+    }
 }
 
 /*ARGSUSED*/
@@ -463,8 +473,16 @@ doswitch(Char **v, struct command *c)
 	stderror(ERR_SYNTAX);
     lp = globone(cp, G_ERROR);
     cleanup_push(lp, xfree);
-    if (!noexec)
-	search(TC_SWITCH, 0, lp);
+    if (!noexec) {
+	if (c->t_dflg & F_LINE) {
+	    struct CommandList *ptr;
+
+	    ptr = retlist(c);
+	    return;
+	}
+	else
+	    search(TC_SWITCH, 0, lp);
+    }
     cleanup_until(lp);
 }
 
@@ -537,6 +555,14 @@ doforeach(Char **v, struct command *c)
 	v = saveblk(v);
 	trim(v);
     }
+    if (c->t_dflg & F_LINE) {
+	struct CommandList *ptr;
+
+	ptr = retlist(c);
+	ptr->vec = ptr->vec0 = ptr->enc->vec = ptr->enc->vec0 = v;
+	ptr->name = ptr->enc->name = Strsave(cp);
+	return;
+    }
     nwp = xcalloc(1, sizeof *nwp);
     nwp->w_fe = nwp->w_fe0 = v;
     btell(&nwp->w_start);
@@ -577,6 +603,13 @@ dowhile(Char **v, struct command *c)
 	status = !expr(&v);
     if (*v && !noexec)
 	stderror(ERR_NAME | ERR_EXPRESSION);
+    if (c->t_dflg & F_LINE) {
+	struct CommandList *ptr;
+
+	ptr = retlist(c);
+	ptr->enc->ret = ptr->ret = status;
+	return;
+    }
     if (!again) {
 	struct whyle *nwp = xcalloc(1, sizeof(*nwp));
 
@@ -2718,4 +2751,15 @@ getYN(const char *prompt)
     while (c != '\n' && force_read(SHIN, &c, sizeof(c)) == sizeof(c))
 	continue;
     return doit;
+}
+
+struct CommandList *
+retlist(struct command *t)
+{
+    struct CommandList *ptr;
+
+    ptr = fnptr;
+    while (ptr->t != t)
+	ptr = ptr->next;
+    return ptr;
 }
