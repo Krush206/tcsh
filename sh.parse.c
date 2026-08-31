@@ -322,7 +322,7 @@ syn1(const struct wordent *p1, const struct wordent *p2, int flags)
 	    if (t->t_dcdr == 0)
 		t->t_dcdr = t->t_dcar, t->t_dcar = 0;
 	    else if (t->t_dcdr->t_dtyp != NODE_LINE)
-		stderror(ERR_MISSING, ';');
+		seterror(ERR_MISSING, ';');
 	    return (t);
 
 	default:
