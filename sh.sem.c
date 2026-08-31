@@ -65,7 +65,9 @@ static	void		 fnexec		(struct CommandList **,
 					 struct CommandList *,
 					 volatile int,
 					 int);
-static	void		 pline		(struct CommandList *);
+static	void		 pline		(struct CommandList *,
+					 volatile int,
+					 int);
 static	void		 wlexec		(struct CommandList **,
 					 volatile int,
 					 int);
@@ -79,12 +81,12 @@ static	struct CommandList *search3	(struct CommandList *, int, Char *);
 static	struct CommandList *search4	(struct CommandList *, int, Char *);
 static	struct CommandList *search5	(struct CommandList *, int, Char *);
 static	struct CommandList *search6	(struct CommandList *, int, Char *);
-static	void		 keywret	(struct CommandList **);
-static	void		 keywret1	(struct CommandList **);
-static	void		 keywret2	(struct CommandList **);
-static	void		 keywret3	(struct CommandList **);
-static	void		 keywret4	(struct CommandList **);
-static	void		 keywret5	(struct CommandList **);
+static	void		 kwret		(struct CommandList **);
+static	void		 kwret1		(struct CommandList **);
+static	void		 kwret2		(struct CommandList **);
+static	void		 kwret3		(struct CommandList **);
+static	void		 kwret4		(struct CommandList **);
+static	void		 kwret5		(struct CommandList **);
 static	int		 kwprop		(struct CommandList *);
 
 struct CommandList fntmp = { NULL,
@@ -787,7 +789,7 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 	if (ctlpar(fntmp.next))
 	    stderror(ERR_CTLPAR);
 	ptr = fntmp.next;
-	pline(ptr);
+	pline(ptr, wanttty, do_glob);
 	fnexec(&ptr, &fntmp, wanttty, do_glob);
 	cleanup_pop_mark(omark);
 	cleanup_until(&fntmp);
@@ -1161,6 +1163,8 @@ fnexec(struct CommandList **lp,
 
     for (ptr = *lp; ptr != hp; ptr = ptr->next) {
 	execute(ptr->t, wanttty, NULL, NULL, do_glob);
+	if (ptr->t->t_dtyp != NODE_COMMAND)
+	    continue;
 	switch (kwprop(ptr)) {
 	case 1:
 	    return;
@@ -1175,18 +1179,20 @@ fnexec(struct CommandList **lp,
 	case TC_WHILE:
 	    wlexec(&ptr, wanttty, do_glob);
 	}
-	keywret(&ptr);
+	kwret(&ptr);
     }
     *lp = ptr;
 }
 
 static void
-pline(struct CommandList *lp)
+pline(struct CommandList *lp, volatile int wanttty, int do_glob)
 {
     struct CommandList *ptr;
     const struct biltins *volatile bp;
 
-    for (ptr = lp; ptr != &fntmp; ptr = ptr->next)
+    for (ptr = lp; ptr != &fntmp; ptr = ptr->next) {
+	if (ptr->t->t_dtyp != NODE_COMMAND)
+	    continue;
 	if ((bp = isbfunc(ptr->t)) &&
 	    (bp->bfunct == doif ||
 	     bp->bfunct == doelse ||
@@ -1196,6 +1202,7 @@ pline(struct CommandList *lp)
 	    setname(bp->bname);
 	    search(ptr);
 	}
+    }
 }
 
 static void
@@ -1233,6 +1240,8 @@ feexec(struct CommandList **lp, volatile int wanttty, int do_glob)
 	ptr = top->next;
 	setv(top->name, quote(Strsave(*top->vec++)), VAR_READWRITE);
 	fnexec(&ptr, end, wanttty, do_glob);
+	if (top->ret)
+	    break;
     }
 }
 
@@ -1397,7 +1406,7 @@ search6(struct CommandList *lp, int level, Char *goal)
 }
 
 static void
-keywret(struct CommandList **lp)
+kwret(struct CommandList **lp)
 {
     struct CommandList *ptr;
 
@@ -1405,25 +1414,25 @@ keywret(struct CommandList **lp)
     switch (ptr->type) {
     case TC_IF:
 	if (!ptr->ret)
-	    keywret1(lp);
+	    kwret1(lp);
 	break;
     case TC_WHILE:
-	keywret2(lp);
+	kwret2(lp);
 	break;
     case TC_FOREACH:
-	keywret3(lp);
+	kwret3(lp);
 	break;
     case TC_SWITCH:
 	if (!ptr->ret)
-	    keywret1(lp);
+	    kwret1(lp);
 	break;
     case TC_ELSE:
-	keywret5(lp);
+	kwret5(lp);
     }
 }
 
 static void
-keywret1(struct CommandList **lp)
+kwret1(struct CommandList **lp)
 {
     struct CommandList *ptr;
 
@@ -1441,7 +1450,7 @@ keywret1(struct CommandList **lp)
 }
 
 static void
-keywret2(struct CommandList **lp)
+kwret2(struct CommandList **lp)
 {
     struct CommandList *ptr;
 
@@ -1453,7 +1462,7 @@ keywret2(struct CommandList **lp)
 }
 
 static void
-keywret3(struct CommandList **lp)
+kwret3(struct CommandList **lp)
 {
     struct CommandList *ptr;
 
@@ -1465,7 +1474,7 @@ keywret3(struct CommandList **lp)
 }
 
 static void
-keywret4(struct CommandList **lp)
+kwret4(struct CommandList **lp)
 {
     struct CommandList *ptr;
     const struct biltins *volatile bp;
@@ -1478,7 +1487,7 @@ keywret4(struct CommandList **lp)
 }
 
 static void
-keywret5(struct CommandList **lp)
+kwret5(struct CommandList **lp)
 {
     struct CommandList *ptr;
 
