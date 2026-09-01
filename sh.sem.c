@@ -85,6 +85,7 @@ static	void		 kwret		(struct CommandList **);
 static	void		 kwret1		(struct CommandList **);
 static	void		 kwret2		(struct CommandList **);
 static	void		 kwret3		(struct CommandList **);
+static	int		 kwret4		(struct CommandList **);
 static	int		 kwprop		(struct CommandList *);
 
 struct CommandList fntmp = { NULL,
@@ -1108,7 +1109,10 @@ fntmp_cleanup(void *xptr)
 	ptr->next->prev = ptr->prev;
 	ptr = ptr->next;
 	xfree(tmp->label);
-	xfree(tmp->vec0);
+	if (tmp->vec0 != NULL) {
+	    blkfree(tmp->vec0);
+	    tmp->enc->vec0 = NULL;
+	}
 	xfree(tmp);
     }
 }
@@ -1463,6 +1467,8 @@ kwret3(struct CommandList **lp)
     top = *lp;
     end = top->enc;
     for (ptr = *lp; ptr != end; ptr = ptr->next) {
+	if (kwret4(lp))
+	    return;
 	if (ptr->type == TC_CASE)
 	    ptr->t->t_dcom[1][Strlen(ptr->t->t_dcom[1]) - 1] = '\0';
 	if (ptr->t->t_dcom[1] != NULL && eq(ptr->t->t_dcom[1], top->label)) {
@@ -1471,12 +1477,32 @@ kwret3(struct CommandList **lp)
 	}
     }
     for (ptr = *lp; ptr != end; ptr = ptr->next) {
+	if (kwret4(lp))
+	    break;
 	if (**ptr->t->t_dcom != ':' && lastchr(*ptr->t->t_dcom) == ':')
 	    (*ptr->t->t_dcom)[Strlen(*ptr->t->t_dcom) - 1] = '\0';
-	if (eq(*ptr->t->t_dcom, STRdefault))
+	if (eq(*ptr->t->t_dcom, STRdefault)) {
+	    *lp = ptr;
 	    break;
+	}
     }
-    *lp = ptr;
+}
+
+static int
+kwret4(struct CommandList **lp)
+{
+    struct CommandList *ptr;
+    struct CommandList *end;
+    struct CommandList *top;
+
+    top = *lp;
+    end = top->enc;
+    for (ptr = *lp; ptr != end; ptr = ptr->next)
+	if (ptr->type == TC_BRKSW) {
+	    *lp = end;
+	    return 1;
+	}
+    return 0;
 }
 
 static int
