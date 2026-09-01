@@ -2155,7 +2155,8 @@ process(int catch)
 	    freesyn(t);
 	    stderror(ERR_OLD);
 	}
-	(void) list(t);
+	if (t != NULL)
+	    (void) list(t);
 
 	postcmd();
 	/*
