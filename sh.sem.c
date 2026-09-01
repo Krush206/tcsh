@@ -58,8 +58,6 @@ static	Char		*splicepipe	(struct command *, Char *);
 static	void		 doio		(struct command *, int *, int *);
 static	void		 chkclob	(const char *);
 static	void		 fnlist		(struct command *, int, int);
-static	int		 ctlpar		(struct CommandList *);
-static	int		 ctlpar1	(struct CommandList *);
 static	void		 fnalloc	(struct command *);
 static	void		 fnexec		(struct CommandList **,
 					 struct CommandList *,
@@ -87,7 +85,6 @@ static	void		 kwret2		(struct CommandList **);
 static	void		 kwret3		(struct CommandList **);
 static	void		 kwret4		(struct CommandList **);
 static	void		 kwret5		(struct CommandList **);
-static	void		 kwret6		(struct CommandList **);
 static	int		 kwprop		(struct CommandList *);
 
 struct CommandList fntmp = { NULL,
@@ -787,10 +784,7 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 	omark = cleanup_push_mark();
 	fnptr = &fntmp;
 	fnlist(t, wanttty, do_glob);
-	if (ctlpar(fntmp.next))
-	    stderror(ERR_CTLPAR);
-	ptr = fntmp.next;
-	pline(ptr, wanttty, do_glob);
+	pline(ptr = fntmp.next, wanttty, do_glob);
 	fnexec(&ptr, &fntmp, wanttty, do_glob);
 	cleanup_pop_mark(omark);
 	cleanup_until(&fntmp);
@@ -1061,7 +1055,10 @@ chkclob(const char *cp)
 static void
 fnlist(struct command *t, int wanttty, int do_glob)
 {
-    if (t->t_dtyp == NODE_PAREN) {
+    switch (t->t_dtyp) {
+    case NODE_AND:
+    case NODE_OR:
+    case NODE_PAREN:
 	fnalloc(t);
 	return;
     }
@@ -1117,46 +1114,6 @@ fntmp_cleanup(void *xptr)
 	xfree(tmp->label);
 	xfree(tmp);
     }
-}
-
-static int
-ctlpar(struct CommandList *lp)
-{
-    struct CommandList *ptr;
-
-    ptr = lp;
-    if (ptr == &fntmp)
-	return 0;
-    if (ptr->t->t_dtyp == NODE_PAREN)
-	return ctlpar(ptr->next);
-    switch (srchx(*ptr->t->t_dcom)) {
-    case TC_IF:
-    case TC_ELSE:
-    case TC_SWITCH:
-    case TC_WHILE:
-    case TC_FOREACH:
-	return ctlpar1(ptr->next);
-    }
-    return ctlpar(ptr->next);
-}
-
-static int
-ctlpar1(struct CommandList *lp)
-{
-    struct CommandList *ptr;
-
-    ptr = lp;
-    if (ptr == &fntmp)
-	return 0;
-    if (ptr->t->t_dtyp == NODE_PAREN)
-	return 1;
-    switch (srchx(*ptr->t->t_dcom)) {
-    case TC_ENDIF:
-    case TC_ENDSW:
-    case TC_END:
-	return 0;
-    }
-    return ctlpar1(ptr->next);
 }
 
 static void
@@ -1271,6 +1228,8 @@ search1(struct CommandList *lp, int level, Char *goal)
 
     if (lp == &fntmp)
 	return lp;
+    if (lp->t->t_dtyp != NODE_COMMAND)
+	return search1(lp->next, level, goal);
     switch(type = srchx(*lp->t->t_dcom)) {
     case TC_IF:
 	lp->type = TC_IF;
@@ -1299,6 +1258,8 @@ search2(struct CommandList *lp, int level, Char *goal)
 
     if (lp == &fntmp)
 	stderror(ERR_NAME | ERR_NOTFOUND, "then/endif");
+    if (lp->t->t_dtyp != NODE_COMMAND)
+	return search2(lp->next, level, goal);
     switch (type = srchx(*lp->t->t_dcom)) {
     case TC_ENDIF:
 	lp->type = TC_ENDIF;
@@ -1321,6 +1282,8 @@ search3(struct CommandList *lp, int level, Char *goal)
 
     if (lp == &fntmp)
 	stderror(ERR_NAME | ERR_NOTFOUND, "endsw");
+    if (lp->t->t_dtyp != NODE_COMMAND)
+	return search3(lp->next, level, goal);
     switch (type = srchx(*lp->t->t_dcom)) {
     case TC_ENDSW:
 	lp->type = TC_ENDSW;
@@ -1343,6 +1306,8 @@ search4(struct CommandList *lp, int level, Char *goal)
 
     if (lp == &fntmp)
 	stderror(ERR_NAME | ERR_NOTFOUND, "end");
+    if (lp->t->t_dtyp != NODE_COMMAND)
+	return search4(lp->next, level, goal);
     switch (type = srchx(*lp->t->t_dcom)) {
     case TC_END:
 	lp->type = TC_END;
@@ -1370,6 +1335,8 @@ search5(struct CommandList *lp, int level, Char *goal)
 
     if (lp == &fntmp)
 	stderror(ERR_NAME | ERR_NOTFOUND, "end");
+    if (lp->t->t_dtyp != NODE_COMMAND)
+	return search5(lp->next, level, goal);
     switch (type = srchx(*lp->t->t_dcom)) {
     case TC_END:
 	lp->type = TC_END;
@@ -1397,6 +1364,8 @@ search6(struct CommandList *lp, int level, Char *goal)
 
     if (lp == &fntmp)
 	stderror(ERR_NAME | ERR_NOTFOUND, "endif");
+    if (lp->t->t_dtyp != NODE_COMMAND)
+	return search6(lp->next, level, goal);
     switch (type = srchx(*lp->t->t_dcom)) {
     case TC_ENDIF:
 	lp->type = TC_ENDIF;
@@ -1424,19 +1393,17 @@ kwret(struct CommandList **lp)
 	    kwret1(lp);
 	break;
     case TC_WHILE:
+    case TC_FOREACH:
 	kwret2(lp);
 	break;
-    case TC_FOREACH:
+    case TC_SWITCH:
 	kwret3(lp);
 	break;
-    case TC_SWITCH:
+    case TC_ELSE:
 	kwret4(lp);
 	break;
-    case TC_ELSE:
-	kwret5(lp);
-	break;
     case TC_BRKSW:
-	kwret6(lp);
+	kwret5(lp);
     }
 }
 
@@ -1444,46 +1411,33 @@ static void
 kwret1(struct CommandList **lp)
 {
     struct CommandList *ptr;
+    struct CommandList *end;
 
-    for (ptr = *lp; ptr != &fntmp; ptr = ptr->next) {
-	switch (ptr->type) {
-	case TC_ENDIF:
-	case TC_ELSE:
-	    *lp = ptr;
+    ptr = *lp;
+    end = ptr->enc;
+    while (ptr != end) {
+	if (ptr->type == TC_ELSE)
 	    break;
-	default:
-	    continue;
-	}
-	break;
+	ptr = ptr->next;
     }
+    *lp = ptr;
 }
 
 static void
 kwret2(struct CommandList **lp)
 {
     struct CommandList *ptr;
+    struct CommandList *end;
 
-    for (ptr = *lp; ptr != &fntmp; ptr = ptr->next)
-	if (ptr->type == TC_END && ptr->enc->type == TC_WHILE) {
-	    *lp = ptr;
-	    break;
-	}
+    ptr = *lp;
+    end = ptr->enc;
+    while (ptr != end)
+	ptr = ptr->next;
+    *lp = ptr;
 }
 
 static void
 kwret3(struct CommandList **lp)
-{
-    struct CommandList *ptr;
-
-    for (ptr = *lp; ptr != &fntmp; ptr = ptr->next)
-	if (ptr->type == TC_END && ptr->enc->type == TC_FOREACH) {
-	    *lp = ptr;
-	    break;
-	}
-}
-
-static void
-kwret4(struct CommandList **lp)
 {
     struct CommandList *ptr;
     struct CommandList *end;
@@ -1502,16 +1456,14 @@ kwret4(struct CommandList **lp)
     for (ptr = *lp; ptr != end; ptr = ptr->next) {
 	if (**ptr->t->t_dcom != ':' && lastchr(*ptr->t->t_dcom) == ':')
 	    (*ptr->t->t_dcom)[Strlen(*ptr->t->t_dcom) - 1] = '\0';
-	if (eq(*ptr->t->t_dcom, STRdefault)) {
-	    *lp = ptr;
-	    return;
-	}
+	if (eq(*ptr->t->t_dcom, STRdefault))
+	    break;
     }
     *lp = ptr;
 }
 
 static void
-kwret5(struct CommandList **lp)
+kwret4(struct CommandList **lp)
 {
     struct CommandList *ptr;
 
@@ -1522,7 +1474,7 @@ kwret5(struct CommandList **lp)
 }
 
 static void
-kwret6(struct CommandList **lp)
+kwret5(struct CommandList **lp)
 {
     struct CommandList *ptr;
 
