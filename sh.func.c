@@ -513,6 +513,8 @@ dobreak(Char **v, struct command *c)
 void
 doexit(Char **v, struct command *c)
 {
+    struct CommandList *ptr;
+
     USE(c);
 
     if (chkstop == 0 && (intty || intact) && evalvec == 0)
@@ -527,6 +529,8 @@ doexit(Char **v, struct command *c)
 	    stderror(ERR_NAME | ERR_EXPRESSION);
     }
     btoeof();
+    for (ptr = fntmp.next; ptr != &fntmp; ptr = ptr->next)
+	ptr->ret = 1;
 #if 0
     if (intty)
 #endif
