@@ -85,8 +85,6 @@ static	void		 kwret		(struct CommandList **);
 static	void		 kwret1		(struct CommandList **);
 static	void		 kwret2		(struct CommandList **);
 static	void		 kwret3		(struct CommandList **);
-static	void		 kwret4		(struct CommandList **);
-static	void		 kwret5		(struct CommandList **);
 static	int		 kwprop		(struct CommandList *);
 
 struct CommandList fntmp = { NULL,
@@ -1086,7 +1084,7 @@ fnalloc(struct command *t)
     new->t = t;
     new->ret = 0;
     new->enc = NULL;
-    new->label = NULL;
+    new->label = Strsave(STRNULL);
     new->name = NULL;
     new->vec = NULL;
     new->vec0 = NULL;
@@ -1109,6 +1107,8 @@ fntmp_cleanup(void *xptr)
 	ptr->prev->next = ptr->next;
 	ptr->next->prev = ptr->prev;
 	ptr = ptr->next;
+	xfree(tmp->label);
+	xfree(tmp->vec0);
 	xfree(tmp);
     }
 }
@@ -1193,7 +1193,7 @@ pline(struct CommandList *lp, volatile int wanttty, int do_glob)
     for (ptr = lp; ptr != &fntmp; ptr = ptr->next) {
 	if (ptr->t->t_dtyp != NODE_COMMAND)
 	    continue;
-	if ((bp = isbfunc(ptr->t)) &&
+	if ((bp = isbfunc(ptr->t)) != NULL &&
 	    (bp->bfunct == doif ||
 	     bp->bfunct == doelse ||
 	     bp->bfunct == doswitch ||
@@ -1416,18 +1416,11 @@ kwret(struct CommandList **lp)
 	if (!ptr->ret)
 	    kwret1(lp);
 	break;
-    case TC_WHILE:
+    case TC_ELSE:
 	kwret2(lp);
 	break;
-    case TC_FOREACH:
-	kwret3(lp);
-	break;
     case TC_SWITCH:
-	if (!ptr->ret)
-	    kwret1(lp);
-	break;
-    case TC_ELSE:
-	kwret5(lp);
+	kwret3(lp);
     }
 }
 
@@ -1454,46 +1447,35 @@ kwret2(struct CommandList **lp)
 {
     struct CommandList *ptr;
 
-    for (ptr = *lp; ptr != &fntmp; ptr = ptr->next)
-	if (ptr->type == TC_END && ptr->enc->type == TC_WHILE) {
-	    *lp = ptr;
-	    break;
-	}
+    ptr = *lp;
+    while (ptr->type != TC_ENDIF)
+	ptr = ptr->next;
+    *lp = ptr;
 }
 
 static void
 kwret3(struct CommandList **lp)
 {
     struct CommandList *ptr;
-
-    for (ptr = *lp; ptr != &fntmp; ptr = ptr->next)
-	if (ptr->type == TC_END && ptr->enc->type == TC_FOREACH) {
+    struct CommandList *end;
+    struct CommandList *top;
+    
+    top = *lp;
+    end = top->enc;
+    for (ptr = *lp; ptr != end; ptr = ptr->next) {
+	if (ptr->type == TC_CASE)
+	    ptr->t->t_dcom[1][Strlen(ptr->t->t_dcom[1]) - 1] = '\0';
+	if (ptr->t->t_dcom[1] != NULL && eq(ptr->t->t_dcom[1], top->label)) {
 	    *lp = ptr;
-	    break;
+	    return;
 	}
-}
-
-static void
-kwret4(struct CommandList **lp)
-{
-    struct CommandList *ptr;
-    const struct biltins *volatile bp;
-
-    for (ptr = *lp; ptr != &fntmp; ptr = ptr->next)
-	if ((bp = isbfunc(ptr->t)) && bp->bfunct == doelse) {
-	    *lp = ptr;
+    }
+    for (ptr = *lp; ptr != end; ptr = ptr->next) {
+	if (**ptr->t->t_dcom != ':' && lastchr(*ptr->t->t_dcom) == ':')
+	    (*ptr->t->t_dcom)[Strlen(*ptr->t->t_dcom) - 1] = '\0';
+	if (eq(*ptr->t->t_dcom, STRdefault))
 	    break;
-	}
-}
-
-static void
-kwret5(struct CommandList **lp)
-{
-    struct CommandList *ptr;
-
-    ptr = *lp;
-    while (ptr->type != TC_ENDIF)
-	ptr = ptr->next;
+    }
     *lp = ptr;
 }
 
