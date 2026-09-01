@@ -1125,6 +1125,8 @@ fnexec(struct CommandList **lp,
     struct CommandList *ptr;
 
     for (ptr = *lp; ptr != hp; ptr = ptr->next) {
+	if (ptr->ret)
+	    return;
 	execute(ptr->t, wanttty, NULL, NULL, do_glob);
 	if (ptr->t->t_dtyp != NODE_COMMAND)
 	    continue;
