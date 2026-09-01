@@ -764,10 +764,17 @@ list2(struct command *t)
 static struct command *
 list3(struct command *t)
 {
+    switch (t->t_dtyp) {
+    case NODE_AND:
+    case NODE_OR:
+    case NODE_PIPE:
+    case NODE_LIST:
+	return t;
+    }
     if (t->t_dcar)
-	list3(t->t_dcar);
+	(void) list3(t->t_dcar);
     if (t->t_dcdr)
-	list3(t->t_dcdr);
+	(void) list3(t->t_dcdr);
     if (t->t_dtyp == NODE_COMMAND)
 	t->t_dflg |= F_LINE;
     return t;
