@@ -480,7 +480,8 @@ doswitch(Char **v, struct command *c)
 	    struct CommandList *ptr;
 
 	    ptr = retlist(c);
-	    return;
+	    xfree(ptr->label);
+	    ptr->label = Strsave(lp);
 	}
 	else
 	    search(TC_SWITCH, 0, lp);
@@ -756,8 +757,11 @@ doswbrk(Char **v, struct command *c)
 {
     USE(v);
     USE(c);
-    if (!noexec)
+    if (!noexec) {
+	if (c->t_dflg & F_LINE)
+	    return;
 	search(TC_BRKSW, 0, NULL);
+    }
 }
 
 int
