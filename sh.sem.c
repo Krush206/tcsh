@@ -1058,11 +1058,12 @@ fnlist(struct command *t, int wanttty, int do_glob)
     switch (t->t_dtyp) {
     case NODE_AND:
     case NODE_OR:
+    case NODE_PIPE:
     case NODE_PAREN:
+    case NODE_LIST:
 	fnalloc(t);
 	return;
-    }
-    if (t->t_dtyp != NODE_COMMAND) {
+    case NODE_LINE:
 	if (t->t_dcar)
 	    fnlist(t->t_dcar, wanttty, do_glob);
 	if (t->t_dcdr)
