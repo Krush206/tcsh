@@ -96,6 +96,7 @@ struct CommandList fntmp = { NULL,
 			     NULL,
 			     NULL,
 			     NULL,
+			     NULL,
 			     NULL };
 struct CommandList *fnptr = &fntmp;
 
@@ -780,6 +781,11 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 	break;
 
     case NODE_LINE:
+	pid = pfork(t, wanttty);
+	if (pid != 0) {
+	    pwait();
+	    break;
+	}
 	cleanup_push(&fntmp, fntmp_cleanup);
 	omark = cleanup_push_mark();
 	fnptr = &fntmp;
@@ -1089,6 +1095,7 @@ fnalloc(struct command *t)
     new->name = NULL;
     new->vec = NULL;
     new->vec0 = NULL;
+    new->sav = NULL;
     new->type = -1;
     fntmp.prev = fnptr = fnptr->next = new;
 }
@@ -1128,7 +1135,9 @@ fnexec(struct CommandList **lp,
     for (ptr = *lp; ptr != hp; ptr = ptr->next) {
 	if (ptr->ret)
 	    return;
+	cleanup_push(&ptr->sav, Dsav_cleanup);
 	execute(ptr->t, wanttty, NULL, NULL, do_glob);
+	cleanup_until(&ptr->sav);
 	if (ptr->t->t_dtyp != NODE_COMMAND)
 	    continue;
 	switch (kwprop(ptr)) {
@@ -1187,7 +1196,9 @@ wlexec(struct CommandList **lp, volatile int wanttty, int do_glob)
 	fnexec(&ptr, end, wanttty, do_glob);
 	if (top->ret)
 	    break;
+	cleanup_push(&top->sav, Dsav_cleanup);
 	execute(top->t, wanttty, NULL, NULL, do_glob);
+	cleanup_until(&top->sav);
     }
 }
 
