@@ -82,6 +82,8 @@ static	void	 setDolp	(Char *);
 static	void	 unDredc	(eChar);
 static	eChar	 Dredc		(void);
 static	void	 Dtestq		(Char);
+static	void	 Lfix		(struct command *);
+static	struct CommandList *Dretsav(Char **);
 
 /*
  * Fix up the $ expansions and quotations in the
@@ -95,6 +97,7 @@ Dfix(struct command *t)
 
     if (noexec)
 	return;
+    Lfix(t);
     /* Note that t_dcom isn't trimmed thus !...:q's aren't lost */
     for (pp = t->t_dcom; (p = *pp++) != NULL;) {
 	for (; *p; p++) {
@@ -1196,4 +1199,48 @@ again:
     (void) xwrite(0, tmp, strlen (tmp));
     (void) lseek(0, (off_t) 0, L_SET);
     cleanup_until(&inheredoc);
+}
+
+static void
+Lfix(struct command *t)
+{
+    struct CommandList *ptr;
+
+    if (t->t_dflg ^ F_LINE)
+	return;
+    ptr = retlist(t);
+    if (ptr->sav == NULL)
+	ptr->sav = t->t_dcom;
+    else
+	t->t_dcom = ptr->sav;
+    t->t_dcom = saveblk(t->t_dcom);
+}
+
+static struct CommandList *
+Dretsav(Char **sav)
+{
+    struct CommandList *ptr;
+
+    for (ptr = fntmp.next; ptr != &fntmp; ptr = ptr->next)
+	if (ptr->sav == sav)
+	    break;
+    return ptr;
+}
+
+void Dsav_cleanup(void *xsav)
+{
+    struct CommandList *ptr;
+    Char ***sav;
+
+    if (noexec)
+	return;
+    sav = xsav;
+    if (*sav == NULL)
+	return;
+    ptr = Dretsav(*sav);
+    if (ptr == &fntmp)
+	return;
+    blkfree(ptr->t->t_dcom);
+    ptr->t->t_dcom = *sav;
+    *sav = NULL;
 }
