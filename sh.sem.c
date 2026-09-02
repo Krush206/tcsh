@@ -87,9 +87,7 @@ static	void		 kwret4		(struct CommandList **);
 static	void		 kwret5		(struct CommandList **);
 static	int		 kwprop		(struct CommandList *);
 
-struct CommandList fntmp = { { NULL,
-			       NULL },
-			     NULL,
+struct CommandList fntmp = { NULL,
 			     &fntmp,
 			     &fntmp,
 			     NULL,
@@ -1100,8 +1098,6 @@ fnalloc(struct command *t)
     new->vec0 = NULL;
     new->sav = NULL;
     new->type = -1;
-    new->redir.right = NULL;
-    new->redir.left = NULL;
     fntmp.prev = fnptr = fnptr->next = new;
 }
 
