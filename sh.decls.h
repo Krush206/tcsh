@@ -79,6 +79,7 @@ extern	Char		 *Dfix1		(Char *);
 extern	void		  heredoc	(Char *);
 extern  Char		 *randsuf	(void);
 extern	void		  Dsav_cleanup	(void *);
+extern	void		  Dredir_cleanup(void *);
 
 /*
  * sh.err.c
