@@ -770,11 +770,13 @@ list3(struct command *t)
     case NODE_PIPE:
     case NODE_LIST:
 	return t;
+    case NODE_LINE:
+	if (t->t_dcdr)
+	    (void) list3(t->t_dcdr);
+	if (t->t_dcar)
+	    (void) list3(t->t_dcar);
+	return t;
     }
-    if (t->t_dcar)
-	(void) list3(t->t_dcar);
-    if (t->t_dcdr)
-	(void) list3(t->t_dcdr);
     if (t->t_dtyp == NODE_COMMAND)
 	t->t_dflg |= F_LINE;
     return t;
