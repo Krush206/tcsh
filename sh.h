@@ -1323,6 +1323,7 @@ struct CommandList {
     Char *name;
     Char **vec0;
     Char **vec;
+    Char **sav;
 };
 
 extern struct CommandList fntmp;
