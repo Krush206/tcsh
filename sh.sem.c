@@ -87,7 +87,9 @@ static	void		 kwret4		(struct CommandList **);
 static	void		 kwret5		(struct CommandList **);
 static	int		 kwprop		(struct CommandList *);
 
-struct CommandList fntmp = { NULL,
+struct CommandList fntmp = { { NULL,
+			       NULL },
+			     NULL,
 			     &fntmp,
 			     &fntmp,
 			     NULL,
@@ -781,19 +783,20 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 	break;
 
     case NODE_LINE:
-	pid = pfork(t, wanttty);
-	if (pid == 0) {
+	pid = pfork(t, -1);
+	if (pid != 0) {
 	    pwait();
 	    break;
 	}
 	cleanup_push(&fntmp, fntmp_cleanup);
 	omark = cleanup_push_mark();
 	fnptr = &fntmp;
-	fnlist(t, wanttty, do_glob);
-	pline(ptr = fntmp.next, wanttty, do_glob);
-	fnexec(&ptr, &fntmp, wanttty, do_glob);
+	fnlist(t, -1, do_glob);
+	pline(ptr = fntmp.next, -1, do_glob);
+	fnexec(&ptr, &fntmp, -1, do_glob);
 	cleanup_pop_mark(omark);
 	cleanup_until(&fntmp);
+	doneinp = 1;
 	break;
 
     case NODE_OR:
@@ -1097,6 +1100,8 @@ fnalloc(struct command *t)
     new->vec0 = NULL;
     new->sav = NULL;
     new->type = -1;
+    new->redir.right = NULL;
+    new->redir.left = NULL;
     fntmp.prev = fnptr = fnptr->next = new;
 }
 
@@ -1136,7 +1141,9 @@ fnexec(struct CommandList **lp,
 	if (ptr->ret)
 	    return;
 	cleanup_push(&ptr->sav, Dsav_cleanup);
+	cleanup_push(&ptr->redir, Dredir_cleanup);
 	execute(ptr->t, wanttty, NULL, NULL, do_glob);
+	cleanup_until(&ptr->redir);
 	cleanup_until(&ptr->sav);
 	if (ptr->t->t_dtyp != NODE_COMMAND)
 	    continue;
@@ -1197,7 +1204,9 @@ wlexec(struct CommandList **lp, volatile int wanttty, int do_glob)
 	if (top->ret)
 	    break;
 	cleanup_push(&top->sav, Dsav_cleanup);
+	cleanup_push(&top->redir, Dredir_cleanup);
 	execute(top->t, wanttty, NULL, NULL, do_glob);
+	cleanup_until(&top->redir);
 	cleanup_until(&top->sav);
     }
 }
