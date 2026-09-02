@@ -782,7 +782,7 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 
     case NODE_LINE:
 	pid = pfork(t, wanttty);
-	if (pid != 0) {
+	if (pid == 0) {
 	    pwait();
 	    break;
 	}
