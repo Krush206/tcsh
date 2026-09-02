@@ -1313,10 +1313,6 @@ extern int    filec;
  * One-line command parsing structure.
  */
 struct CommandList {
-    struct {
-	Char *right;
-	Char *left;
-    } redir;
     struct command *t;
     struct CommandList *next;
     struct CommandList *prev;
