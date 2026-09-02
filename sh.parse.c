@@ -769,6 +769,7 @@ list3(struct command *t)
     case NODE_OR:
     case NODE_PIPE:
     case NODE_LIST:
+    case NODE_PAREN:
 	return t;
     case NODE_LINE:
 	if (t->t_dcdr)
@@ -777,7 +778,6 @@ list3(struct command *t)
 	    (void) list3(t->t_dcar);
 	return t;
     }
-    if (t->t_dtyp == NODE_COMMAND)
-	t->t_dflg |= F_LINE;
+    t->t_dflg |= F_LINE;
     return t;
 }
