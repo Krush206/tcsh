@@ -78,6 +78,7 @@ extern	void		  Dfix		(struct command *);
 extern	Char		 *Dfix1		(Char *);
 extern	void		  heredoc	(Char *);
 extern  Char		 *randsuf	(void);
+extern	void		  Dsav_cleanup	(void *);
 
 /*
  * sh.err.c
@@ -185,6 +186,7 @@ extern	void		  wfree		(void);
 extern	void		  dobuiltins	(Char **, struct command *);
 extern	void		  reexecute	(struct command *);
 extern  int		  getYN		(const char *);
+extern	struct CommandList *retlist	(struct command *);
 
 /*
  * sh.glob.c
