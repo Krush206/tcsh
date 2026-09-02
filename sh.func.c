@@ -63,7 +63,6 @@ static	void	xecho		(int, Char **);
 static	int	islocale_var	(Char *);
 static	void	wpfree		(struct whyle *);
 static	int	srchenc		(struct CommandList *);
-static	struct CommandList *retlist(struct command *);
 
 const struct biltins *
 isbfunc(struct command *t)
@@ -2787,7 +2786,7 @@ getYN(const char *prompt)
     return doit;
 }
 
-static struct CommandList *
+struct CommandList *
 retlist(struct command *t)
 {
     struct CommandList *ptr;
