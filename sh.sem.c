@@ -1222,6 +1222,7 @@ feexec(struct CommandList **lp, volatile int wanttty, int do_glob)
     end = top->enc;
     if (top->vec[1] == NULL)
 	return;
+    cleanup_push(top->name, xfree);
     while (top->vec[1] != NULL) {
 	ptr = top->next;
 	setv(top->name, quote(Strsave(*top->vec++)), VAR_READWRITE);
@@ -1230,6 +1231,7 @@ feexec(struct CommandList **lp, volatile int wanttty, int do_glob)
 	if (top->ret)
 	    break;
     }
+    cleanup_until(top->name);
 }
 
 static void
