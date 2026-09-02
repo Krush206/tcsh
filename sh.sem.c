@@ -1141,9 +1141,7 @@ fnexec(struct CommandList **lp,
 	if (ptr->ret)
 	    return;
 	cleanup_push(&ptr->sav, Dsav_cleanup);
-	cleanup_push(&ptr->redir, Dredir_cleanup);
 	execute(ptr->t, wanttty, NULL, NULL, do_glob);
-	cleanup_until(&ptr->redir);
 	cleanup_until(&ptr->sav);
 	if (ptr->t->t_dtyp != NODE_COMMAND)
 	    continue;
@@ -1204,9 +1202,7 @@ wlexec(struct CommandList **lp, volatile int wanttty, int do_glob)
 	if (top->ret)
 	    break;
 	cleanup_push(&top->sav, Dsav_cleanup);
-	cleanup_push(&top->redir, Dredir_cleanup);
 	execute(top->t, wanttty, NULL, NULL, do_glob);
-	cleanup_until(&top->redir);
 	cleanup_until(&top->sav);
     }
 }
