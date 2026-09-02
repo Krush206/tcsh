@@ -1244,7 +1244,6 @@ Lfix1(Char *cp)
 	if ((ret = Dretcom(ptr->t, cp)))
 	    break;
     }
-    xprintf("%s\n", short2str(cp));
     switch (ret) {
     case 1:
 	ptr->redir.right = ptr->t->t_drit;
@@ -1278,6 +1277,8 @@ Dredir_cleanup(void *xredir)
 	if (&ptr->redir == xredir)
 	    break;
     if (ptr == &fntmp)
+	return;
+    if ((ptr->t->t_dflg & F_LINE) == 0)
 	return;
     xfree(ptr->t->t_drit);
     xfree(ptr->t->t_dlef);
