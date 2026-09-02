@@ -83,8 +83,6 @@ static	void	 unDredc	(eChar);
 static	eChar	 Dredc		(void);
 static	void	 Dtestq		(Char);
 static	void	 Lfix		(struct command *);
-static	void	 Lfix1		(Char *);
-static	int	 Dretcom	(struct command *, Char *);
 static	struct CommandList *Dretsav(Char **);
 
 /*
@@ -125,7 +123,6 @@ Dfix1(Char *cp)
 
     if (noexec)
 	return (0);
-    Lfix1(cp);
     Dv[0] = cp;
     Dv[1] = NULL;
     expanded = Dfix2(Dv);
@@ -1204,16 +1201,6 @@ again:
     cleanup_until(&inheredoc);
 }
 
-static int
-Dretcom(struct command *t, Char *cp)
-{
-    if (t->t_drit == cp)
-	return 1;
-    if (t->t_dlef == cp)
-	return 2;
-    return 0;
-}
-
 static void
 Lfix(struct command *t)
 {
@@ -1229,32 +1216,6 @@ Lfix(struct command *t)
     t->t_dcom = saveblk(t->t_dcom);
 }
 
-static void
-Lfix1(Char *cp)
-{
-    struct CommandList *ptr;
-    int ret;
-
-    ret = 0;
-    for (ptr = fntmp.next; ptr != &fntmp; ptr = ptr->next) {
-	if (ptr->t->t_dtyp != NODE_COMMAND)
-	    continue;
-	if ((ptr->t->t_dflg & F_LINE) == 0)
-	    continue;
-	if ((ret = Dretcom(ptr->t, cp)))
-	    break;
-    }
-    switch (ret) {
-    case 1:
-	ptr->redir.right = ptr->t->t_drit;
-	ptr->t->t_drit = Strsave(ptr->t->t_drit);
-	break;
-    case 2:
-	ptr->redir.left = ptr->t->t_dlef;
-	ptr->t->t_dlef = Strsave(ptr->t->t_dlef);
-    }
-}
-
 static struct CommandList *
 Dretsav(Char **sav)
 {
@@ -1264,28 +1225,6 @@ Dretsav(Char **sav)
 	if (ptr->sav == sav)
 	    break;
     return ptr;
-}
-
-void
-Dredir_cleanup(void *xredir)
-{
-    struct CommandList *ptr;
-
-    if (noexec)
-	return;
-    for (ptr = fntmp.next; ptr != &fntmp; ptr = ptr->next)
-	if (&ptr->redir == xredir)
-	    break;
-    if (ptr == &fntmp)
-	return;
-    if ((ptr->t->t_dflg & F_LINE) == 0)
-	return;
-    xfree(ptr->t->t_drit);
-    xfree(ptr->t->t_dlef);
-    ptr->t->t_drit = ptr->redir.right;
-    ptr->t->t_dlef = ptr->redir.left;
-    ptr->redir.right = NULL;
-    ptr->redir.left = NULL;
 }
 
 void
