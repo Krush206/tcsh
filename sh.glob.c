@@ -803,7 +803,7 @@ backeval(struct blk_buf *bb, struct Strbuf *word, Char *cp, int literal)
 	     * will have "Exit N" appended where N is the exit status. */
 	    if (t) {
 		    t->t_dflg = F_BACKQ|F_NOFORK;
-		    (void) list(t);
+		    list(t);
 	    }
 	    if (seterr)
 		stderror(ERR_OLD);
