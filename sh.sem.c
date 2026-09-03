@@ -57,15 +57,13 @@ static	void		vffree		(int);
 static	Char		*splicepipe	(struct command *, Char *);
 static	void		 doio		(struct command *, int *, int *);
 static	void		 chkclob	(const char *);
-static	void		 fnlist		(struct command *, int, int);
+static	void		 fnlist		(struct command *);
 static	void		 fnalloc	(struct command *);
 static	void		 fnexec		(struct CommandList **,
 					 struct CommandList *,
 					 volatile int,
 					 int);
-static	void		 pline		(struct CommandList *,
-					 volatile int,
-					 int);
+static	void		 pline		(struct CommandList *);
 static	void		 wlexec		(struct CommandList **,
 					 volatile int,
 					 int);
@@ -73,12 +71,12 @@ static	void		 feexec		(struct CommandList **,
 					 volatile int,
 					 int);
 static	void		 search		(struct CommandList *);
-static	struct CommandList *search1	(struct CommandList *, int, Char *);
-static	struct CommandList *search2	(struct CommandList *, int, Char *);
-static	struct CommandList *search3	(struct CommandList *, int, Char *);
-static	struct CommandList *search4	(struct CommandList *, int, Char *);
-static	struct CommandList *search5	(struct CommandList *, int, Char *);
-static	struct CommandList *search6	(struct CommandList *, int, Char *);
+static	struct CommandList *search1	(struct CommandList *, int);
+static	struct CommandList *search2	(struct CommandList *, int);
+static	struct CommandList *search3	(struct CommandList *, int);
+static	struct CommandList *search4	(struct CommandList *, int);
+static	struct CommandList *search5	(struct CommandList *, int);
+static	struct CommandList *search6	(struct CommandList *, int);
 static	void		 kwret		(struct CommandList **);
 static	void		 kwret1		(struct CommandList **);
 static	void		 kwret2		(struct CommandList **);
@@ -789,8 +787,8 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 	cleanup_push(&fntmp, fntmp_cleanup);
 	omark = cleanup_push_mark();
 	fnptr = &fntmp;
-	fnlist(t, -1, do_glob);
-	pline(ptr = fntmp.next, -1, do_glob);
+	fnlist(t);
+	pline(ptr = fntmp.next);
 	fnexec(&ptr, &fntmp, -1, do_glob);
 	cleanup_pop_mark(omark);
 	cleanup_until(&fntmp);
@@ -1060,25 +1058,16 @@ chkclob(const char *cp)
 }
 
 static void
-fnlist(struct command *t, int wanttty, int do_glob)
+fnlist(struct command *t)
 {
-    switch (t->t_dtyp) {
-    case NODE_AND:
-    case NODE_OR:
-    case NODE_PIPE:
-    case NODE_PAREN:
-    case NODE_LIST:
-	fnalloc(t);
-	return;
-    case NODE_LINE:
+    if (t->t_dtyp == NODE_LINE) {
 	if (t->t_dcar)
-	    fnlist(t->t_dcar, wanttty, do_glob);
+	    fnlist(t->t_dcar);
 	if (t->t_dcdr)
-	    fnlist(t->t_dcdr, wanttty, do_glob);
+	    fnlist(t->t_dcdr);
 	return;
     }
-    if (t->t_dflg & F_LINE)
-	fnalloc(t);
+    fnalloc(t);
 }
 
 static void
@@ -1161,7 +1150,7 @@ fnexec(struct CommandList **lp,
 }
 
 static void
-pline(struct CommandList *lp, volatile int wanttty, int do_glob)
+pline(struct CommandList *lp)
 {
     struct CommandList *ptr;
     const struct biltins *volatile bp;
@@ -1232,51 +1221,51 @@ search(struct CommandList *lp)
     struct CommandList *ptr;
 
     ptr = lp;
-    ptr->enc = search1(ptr, 0, NULL);
+    ptr->enc = search1(ptr, 0);
     if (ptr->enc == &fntmp)
 	return;
     ptr->enc->enc = ptr;
 }
 
 static struct CommandList *
-search1(struct CommandList *lp, int level, Char *goal)
+search1(struct CommandList *lp, int level)
 {
     int type;
 
     if (lp == &fntmp)
 	return lp;
     if (lp->t->t_dtyp != NODE_COMMAND)
-	return search1(lp->next, level, goal);
+	return search1(lp->next, level);
     switch(type = srchx(*lp->t->t_dcom)) {
     case TC_IF:
 	lp->type = TC_IF;
-	return search2(lp->next, level + 1, goal);
+	return search2(lp->next, level + 1);
     case TC_SWITCH:
 	lp->type = TC_SWITCH;
-	return search3(lp->next, level + 1, goal);
+	return search3(lp->next, level + 1);
     case TC_WHILE:
 	lp->type = TC_WHILE;
-	return search4(lp->next, level + 1, goal);
+	return search4(lp->next, level + 1);
     case TC_FOREACH:
 	lp->type = TC_FOREACH;
-	return search5(lp->next, level + 1, goal);
+	return search5(lp->next, level + 1);
     case TC_ELSE:
 	lp->type = TC_ELSE;
-	return search6(lp->next, level + 1, goal);
+	return search6(lp->next, level + 1);
     }
     lp->type = type;
-    return search1(lp->next, level, goal);
+    return search1(lp->next, level);
 }
 
 static struct CommandList *
-search2(struct CommandList *lp, int level, Char *goal)
+search2(struct CommandList *lp, int level)
 {
     int type;
 
     if (lp == &fntmp)
 	stderror(ERR_NAME | ERR_NOTFOUND, "then/endif");
     if (lp->t->t_dtyp != NODE_COMMAND)
-	return search2(lp->next, level, goal);
+	return search2(lp->next, level);
     switch (type = srchx(*lp->t->t_dcom)) {
     case TC_ENDIF:
 	lp->type = TC_ENDIF;
@@ -1285,22 +1274,22 @@ search2(struct CommandList *lp, int level, Char *goal)
 	break;
     case TC_IF:
 	lp->type = TC_IF;
-	return lp->enc = search2(lp->next, level + 1, goal);
+	return lp->enc = search2(lp->next, level + 1);
     default:
 	lp->type = type;
     }
-    return search2(lp->next, level, goal);
+    return search2(lp->next, level);
 }
 
 static struct CommandList *
-search3(struct CommandList *lp, int level, Char *goal)
+search3(struct CommandList *lp, int level)
 {
     int type;
 
     if (lp == &fntmp)
 	stderror(ERR_NAME | ERR_NOTFOUND, "endsw");
     if (lp->t->t_dtyp != NODE_COMMAND)
-	return search3(lp->next, level, goal);
+	return search3(lp->next, level);
     switch (type = srchx(*lp->t->t_dcom)) {
     case TC_ENDSW:
 	lp->type = TC_ENDSW;
@@ -1309,22 +1298,22 @@ search3(struct CommandList *lp, int level, Char *goal)
 	break;
     case TC_SWITCH:
 	lp->type = TC_SWITCH;
-	return lp->enc = search3(lp->next, level + 1, goal);
+	return lp->enc = search3(lp->next, level + 1);
     default:
 	lp->type = type;
     }
-    return search3(lp->next, level, goal);
+    return search3(lp->next, level);
 }
 
 static struct CommandList *
-search4(struct CommandList *lp, int level, Char *goal)
+search4(struct CommandList *lp, int level)
 {
     int type;
 
     if (lp == &fntmp)
 	stderror(ERR_NAME | ERR_NOTFOUND, "end");
     if (lp->t->t_dtyp != NODE_COMMAND)
-	return search4(lp->next, level, goal);
+	return search4(lp->next, level);
     switch (type = srchx(*lp->t->t_dcom)) {
     case TC_END:
 	lp->type = TC_END;
@@ -1335,25 +1324,25 @@ search4(struct CommandList *lp, int level, Char *goal)
 	break;
     case TC_FOREACH:
 	lp->type = TC_FOREACH;
-	return lp->enc = search5(lp->next, level + 1, goal);
+	return lp->enc = search5(lp->next, level + 1);
     case TC_WHILE:
 	lp->type = TC_WHILE;
-	return search4(lp->next, level + 1, goal);
+	return search4(lp->next, level + 1);
     default:
 	lp->type = type;
     }
-    return search4(lp->next, level, goal);
+    return search4(lp->next, level);
 }
 
 static struct CommandList *
-search5(struct CommandList *lp, int level, Char *goal)
+search5(struct CommandList *lp, int level)
 {
     int type;
 
     if (lp == &fntmp)
 	stderror(ERR_NAME | ERR_NOTFOUND, "end");
     if (lp->t->t_dtyp != NODE_COMMAND)
-	return search5(lp->next, level, goal);
+	return search5(lp->next, level);
     switch (type = srchx(*lp->t->t_dcom)) {
     case TC_END:
 	lp->type = TC_END;
@@ -1364,25 +1353,25 @@ search5(struct CommandList *lp, int level, Char *goal)
 	break;
     case TC_WHILE:
 	lp->type = TC_WHILE;
-	return search4(lp->next, level + 1, goal);
+	return search4(lp->next, level + 1);
     case TC_FOREACH:
 	lp->type = TC_FOREACH;
-	return lp->enc = search5(lp->next, level + 1, goal);
+	return lp->enc = search5(lp->next, level + 1);
     default:
 	lp->type = type;
     }
-    return search5(lp->next, level, goal);
+    return search5(lp->next, level);
 }
 
 static struct CommandList *
-search6(struct CommandList *lp, int level, Char *goal)
+search6(struct CommandList *lp, int level)
 {
     int type;
 
     if (lp == &fntmp)
 	stderror(ERR_NAME | ERR_NOTFOUND, "endif");
     if (lp->t->t_dtyp != NODE_COMMAND)
-	return search6(lp->next, level, goal);
+	return search6(lp->next, level);
     switch (type = srchx(*lp->t->t_dcom)) {
     case TC_ENDIF:
 	lp->type = TC_ENDIF;
@@ -1391,11 +1380,11 @@ search6(struct CommandList *lp, int level, Char *goal)
 	break;
     case TC_ELSE:
 	lp->type = TC_ELSE;
-	return lp->enc = search6(lp->next, level + 1, goal);
+	return lp->enc = search6(lp->next, level + 1);
     default:
 	lp->type = type;
     }
-    return search6(lp->next, level, goal);
+    return search6(lp->next, level);
 }
 
 static void
