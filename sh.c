@@ -2156,7 +2156,7 @@ process(int catch)
 	    stderror(ERR_OLD);
 	}
 	if (t != NULL)
-	    (void) list(t);
+	    list(t);
 
 	postcmd();
 	/*
