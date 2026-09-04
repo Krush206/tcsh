@@ -258,7 +258,8 @@ syn0(const struct wordent *p1, const struct wordent *p2, int flags)
 	    t1 = syn1(p1, p, flags);
 	    if (t1->t_dtyp == NODE_LIST ||
 		t1->t_dtyp == NODE_AND ||
-		t1->t_dtyp == NODE_OR) {
+		t1->t_dtyp == NODE_OR ||
+		t1->t_dtyp == NODE_LINE) {
 		t = xcalloc(1, sizeof(*t));
 		t->t_dtyp = NODE_PAREN;
 		t->t_dflg = F_AMPERSAND | F_NOINTERRUPT;
@@ -285,7 +286,7 @@ syn0(const struct wordent *p1, const struct wordent *p2, int flags)
 /*
  * syn1
  *	syn1a
- *	syn1a ; syntax
+ *	syn1a ; syntax ;
  */
 static struct command *
 syn1(const struct wordent *p1, const struct wordent *p2, int flags)
