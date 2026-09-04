@@ -1467,8 +1467,7 @@ kwret3(struct CommandList **lp)
     top = *lp;
     end = top->enc;
     for (ptr = *lp; ptr != end; ptr = ptr->next) {
-	if (ptr->type == TC_CASE &&
-	    ptr->t->t_dcom[1][Strlen(ptr->t->t_dcom[1]) - 1] == ':')
+	if (ptr->type == TC_CASE && lastchr(ptr->t->t_dcom[1]) == ':')
 	    ptr->t->t_dcom[1][Strlen(ptr->t->t_dcom[1]) - 1] = '\0';
 	if (ptr->t->t_dcom[1] != NULL && eq(ptr->t->t_dcom[1], top->label)) {
 	    *lp = ptr;
@@ -1476,9 +1475,9 @@ kwret3(struct CommandList **lp)
 	}
     }
     for (ptr = *lp; ptr != end; ptr = ptr->next) {
-	if ((*ptr->t->t_dcom)[0] != ':' && lastchr(*ptr->t->t_dcom) == ':')
-	    (*ptr->t->t_dcom)[Strlen(*ptr->t->t_dcom) - 1] = '\0';
-	if (eq(*ptr->t->t_dcom, STRdefault))
+	if (ptr->t->t_dcom[0][0] != ':' && lastchr(ptr->t->t_dcom[0]) == ':')
+	    ptr->t->t_dcom[0][Strlen(ptr->t->t_dcom[0]) - 1] = '\0';
+	if (eq(ptr->t->t_dcom[0], STRdefault))
 	    break;
     }
     *lp = ptr;
