@@ -78,7 +78,6 @@ extern	void		  Dfix		(struct command *);
 extern	Char		 *Dfix1		(Char *);
 extern	void		  heredoc	(Char *);
 extern  Char		 *randsuf	(void);
-extern	void		  Dsav_cleanup	(void *);
 
 /*
  * sh.err.c
