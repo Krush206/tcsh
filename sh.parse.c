@@ -723,7 +723,7 @@ list(struct command *t)
 static void
 list1(struct command *t)
 {
-    if (t->t_dtyp != NODE_COMMAND) {
+    if (t->t_dtyp == NODE_LINE) {
 	list(t);
 	return;
     }
