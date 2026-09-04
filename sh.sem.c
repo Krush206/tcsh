@@ -84,6 +84,9 @@ static	void		 kwret3		(struct CommandList **);
 static	void		 kwret4		(struct CommandList **);
 static	void		 kwret5		(struct CommandList **);
 static	int		 kwprop		(struct CommandList *);
+static	void		 Lfix		(struct command *);
+static	void		 Lfix1		(struct command *);
+static	void		 dolalloc	(struct command *);
 
 struct CommandList fntmp = { NULL,
 			     &fntmp,
@@ -97,6 +100,19 @@ struct CommandList fntmp = { NULL,
 			     NULL,
 			     NULL };
 struct CommandList *fnptr = &fntmp;
+
+struct CommandList doltmp = { NULL,
+			      &doltmp,
+			      &doltmp,
+			      NULL,
+			      -1,
+			      0,
+			      NULL,
+			      NULL,
+			      NULL,
+			      NULL,
+			      NULL };
+struct CommandList *dolptr = &doltmp;
 
 /*
  * C shell
@@ -140,7 +156,7 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 
     if (t == 0)
 	return;
-
+    list(t);
 #ifdef WINNT_NATIVE
     {
         if ((varval(STRNTslowexec) == STRNULL) &&
@@ -1125,9 +1141,13 @@ fnexec(struct CommandList **lp,
     for (ptr = *lp; ptr != hp; ptr = ptr->next) {
 	if (ptr->ret)
 	    return;
+	dolptr = &doltmp;
+	cleanup_push(&doltmp, doltmp_cleanup);
+	Lfix(ptr->t);
 	cleanup_push(&ptr->sav, Dsav_cleanup);
 	execute(ptr->t, wanttty, NULL, NULL, do_glob);
 	cleanup_until(&ptr->sav);
+	cleanup_until(&doltmp);
 	if (ptr->t->t_dtyp != NODE_COMMAND)
 	    continue;
 	switch (kwprop(ptr)) {
@@ -1158,7 +1178,7 @@ pline(struct CommandList *lp)
     for (ptr = lp; ptr != &fntmp; ptr = ptr->next) {
 	if (ptr->t->t_dtyp != NODE_COMMAND)
 	    continue;
-	if ((bp = isbfunc(ptr->t)) &&
+	if ((bp = isbfunc(ptr->t)) != NULL &&
 	    (bp->bfunct == doif ||
 	     bp->bfunct == doelse ||
 	     bp->bfunct == doswitch ||
@@ -1452,7 +1472,8 @@ kwret3(struct CommandList **lp)
     top = *lp;
     end = top->enc;
     for (ptr = *lp; ptr != end; ptr = ptr->next) {
-	if (ptr->type == TC_CASE)
+	if (ptr->type == TC_CASE &&
+	    ptr->t->t_dcom[1][Strlen(ptr->t->t_dcom[1]) - 1] == ':')
 	    ptr->t->t_dcom[1][Strlen(ptr->t->t_dcom[1]) - 1] = '\0';
 	if (ptr->t->t_dcom[1] != NULL && eq(ptr->t->t_dcom[1], top->label)) {
 	    *lp = ptr;
@@ -1460,7 +1481,7 @@ kwret3(struct CommandList **lp)
 	}
     }
     for (ptr = *lp; ptr != end; ptr = ptr->next) {
-	if (**ptr->t->t_dcom != ':' && lastchr(*ptr->t->t_dcom) == ':')
+	if ((*ptr->t->t_dcom)[0] != ':' && lastchr(*ptr->t->t_dcom) == ':')
 	    (*ptr->t->t_dcom)[Strlen(*ptr->t->t_dcom) - 1] = '\0';
 	if (eq(*ptr->t->t_dcom, STRdefault))
 	    break;
@@ -1504,4 +1525,64 @@ kwprop(struct CommandList *lp)
     if (bp->bfunct == dobreak)
 	return 2;
     return 0;
+}
+
+static void
+Lfix(struct command *t)
+{
+    switch (t->t_dtyp) {
+    case NODE_AND:
+    case NODE_OR:
+    case NODE_LIST:
+    case NODE_PIPE:
+	if (t->t_dcar)
+	    Lfix1(t->t_dcar);
+	if (t->t_dcdr)
+	    Lfix1(t->t_dcdr);
+    }
+}
+
+static void
+Lfix1(struct command *t)
+{
+    if (t->t_dtyp != NODE_COMMAND) {
+	Lfix(t);
+	return;
+    }
+    dolalloc(t);
+}
+
+static void
+dolalloc(struct command *t)
+{
+    struct CommandList *new;
+
+    new = xmalloc(sizeof *new);
+    new->next = &doltmp;
+    new->prev = dolptr;
+    new->t = t;
+    new->sav = t->t_dcom;
+    t->t_dcom = saveblk(t->t_dcom);
+    doltmp.prev = dolptr = dolptr->next = new;
+}
+
+void
+doltmp_cleanup(void *xptr)
+{
+    struct CommandList *ptr;
+    struct CommandList *hp;
+
+    hp = ptr = xptr;
+    ptr = ptr->next;
+    while (ptr != hp) {
+	struct CommandList *tmp;
+
+	tmp = ptr;
+	ptr->prev->next = ptr->next;
+	ptr->next->prev = ptr->prev;
+	ptr = ptr->next;
+	blkfree(tmp->t->t_dcom);
+	tmp->t->t_dcom = tmp->sav;
+	xfree(tmp);
+    }
 }
