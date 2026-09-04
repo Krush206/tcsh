@@ -51,6 +51,32 @@
 # endif /* !MACH && SYSVREL == 0 && !Lynx && !BSD4_4 && !glibc */
 #endif /* __sparc__ || sparc */
 
+struct CommandList fntmp = { NULL,
+			     &fntmp,
+			     &fntmp,
+			     NULL,
+			     -1,
+			     0,
+			     NULL,
+			     NULL,
+			     NULL,
+			     NULL,
+			     NULL };
+struct CommandList *fnptr = &fntmp;
+
+struct CommandList doltmp = { NULL,
+			      &doltmp,
+			      &doltmp,
+			      NULL,
+			      -1,
+			      0,
+			      NULL,
+			      NULL,
+			      NULL,
+			      NULL,
+			      NULL };
+struct CommandList *dolptr = &doltmp;
+
 #ifdef VFORK
 static	void		vffree		(int);
 #endif
@@ -87,32 +113,6 @@ static	int		 kwprop		(struct CommandList *);
 static	void		 Lfix		(struct command *);
 static	void		 Lfix1		(struct command *);
 static	void		 dolalloc	(struct command *);
-
-struct CommandList fntmp = { NULL,
-			     &fntmp,
-			     &fntmp,
-			     NULL,
-			     -1,
-			     0,
-			     NULL,
-			     NULL,
-			     NULL,
-			     NULL,
-			     NULL };
-struct CommandList *fnptr = &fntmp;
-
-struct CommandList doltmp = { NULL,
-			      &doltmp,
-			      &doltmp,
-			      NULL,
-			      -1,
-			      0,
-			      NULL,
-			      NULL,
-			      NULL,
-			      NULL,
-			      NULL };
-struct CommandList *dolptr = &doltmp;
 
 /*
  * C shell
@@ -799,13 +799,14 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 	    pwait();
 	    break;
 	}
-	cleanup_push(&fntmp, fntmp_cleanup);
+	xclose(SHIN);
+	SHIN = -1;
 	fnptr = &fntmp;
+	cleanup_push(&fntmp, fntmp_cleanup);
 	fnlist(t);
 	pline(ptr = fntmp.next);
 	fnexec(&ptr, &fntmp, -1, do_glob);
 	cleanup_until(&fntmp);
-	doneinp = 1;
 	break;
 
     case NODE_OR:
