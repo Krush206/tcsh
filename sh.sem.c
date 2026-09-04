@@ -156,7 +156,7 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 
     if (t == 0)
 	return;
-    list(t);
+
 #ifdef WINNT_NATIVE
     {
         if ((varval(STRNTslowexec) == STRNULL) &&
