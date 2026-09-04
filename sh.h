@@ -1329,4 +1329,7 @@ struct CommandList {
 extern struct CommandList fntmp;
 extern struct CommandList *fnptr;
 
+extern struct CommandList doltmp;
+extern struct CommandList *dolptr;
+
 #endif /* _h_sh */
