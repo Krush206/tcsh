@@ -240,7 +240,6 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 	wanttty = 0;
     switch (t->t_dtyp) {
 	struct CommandList *ptr;
-	size_t omark;
 
     case NODE_COMMAND:
 	if ((t->t_dcom[0][0] & (QUOTE | TRIM)) == QUOTE)
@@ -801,12 +800,10 @@ execute(struct command *t, volatile int wanttty, int *pipein, int *pipeout,
 	    break;
 	}
 	cleanup_push(&fntmp, fntmp_cleanup);
-	omark = cleanup_push_mark();
 	fnptr = &fntmp;
 	fnlist(t);
 	pline(ptr = fntmp.next);
 	fnexec(&ptr, &fntmp, -1, do_glob);
-	cleanup_pop_mark(omark);
 	cleanup_until(&fntmp);
 	doneinp = 1;
 	break;
