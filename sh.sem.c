@@ -1101,7 +1101,6 @@ fnalloc(struct command *t)
     new->name = NULL;
     new->vec = NULL;
     new->vec0 = NULL;
-    new->sav = NULL;
     new->type = -1;
     fntmp.prev = fnptr = fnptr->next = new;
 }
@@ -1139,14 +1138,10 @@ fnexec(struct CommandList **lp,
     struct CommandList *ptr;
 
     for (ptr = *lp; ptr != hp; ptr = ptr->next) {
-	if (ptr->ret)
-	    return;
 	dolptr = &doltmp;
 	cleanup_push(&doltmp, doltmp_cleanup);
 	Lfix(ptr->t);
-	cleanup_push(&ptr->sav, Dsav_cleanup);
 	execute(ptr->t, wanttty, NULL, NULL, do_glob);
-	cleanup_until(&ptr->sav);
 	cleanup_until(&doltmp);
 	if (ptr->t->t_dtyp != NODE_COMMAND)
 	    continue;
@@ -1206,9 +1201,11 @@ wlexec(struct CommandList **lp, volatile int wanttty, int do_glob)
 	fnexec(&ptr, end, wanttty, do_glob);
 	if (top->ret)
 	    break;
-	cleanup_push(&top->sav, Dsav_cleanup);
+	dolptr = &doltmp;
+	cleanup_push(&doltmp, doltmp_cleanup);
+	Lfix(top->t);
 	execute(top->t, wanttty, NULL, NULL, do_glob);
-	cleanup_until(&top->sav);
+	cleanup_until(&doltmp);
     }
 }
 
@@ -1531,6 +1528,9 @@ static void
 Lfix(struct command *t)
 {
     switch (t->t_dtyp) {
+    case NODE_COMMAND:
+	dolalloc(t);
+	break;
     case NODE_AND:
     case NODE_OR:
     case NODE_LIST:
