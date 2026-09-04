@@ -382,18 +382,16 @@ getvx(Char *vp, int subscr)
 void
 dolet(Char **v, struct command *dummy)
 {
-    Char *p, **vsav, **vheap;
+    Char *p;
     Char   *vp, c, op;
     int    hadsub;
     int     subscr;
 
     USE(dummy);
-    cleanup_push(vsav = vheap = saveblk(v), blk_cleanup);
-    vheap++;
-    p = *vheap++;
+    v++;
+    p = *v++;
     if (p == 0) {
 	prvars();
-	cleanup_until(vsav);
 	return;
     }
     do {
@@ -408,8 +406,8 @@ dolet(Char **v, struct command *dummy)
 	    hadsub++;
 	    p = getinx(p, &subscr);
 	}
-	if (*p == 0 && *vheap)
-	    p = *vheap++;
+	if (*p == 0 && *v)
+	    p = *v++;
 	if ((op = *p) != 0)
 	    *p++ = 0;
 	else
@@ -419,14 +417,14 @@ dolet(Char **v, struct command *dummy)
 	 * if there is no expression after the '=' then print a "Syntax Error"
 	 * message - strike
 	 */
-	if (*p == '\0' && *vheap == NULL)
+	if (*p == '\0' && *v == NULL)
 	    stderror(ERR_NAME | ERR_ASSIGN);
 
 	vp = Strsave(vp);
 	cleanup_push(vp, xfree);
 	if (op == '=') {
 	    c = '=';
-	    p = xset(p, &vheap);
+	    p = xset(p, &v);
 	}
 	else {
 	    c = *p++;
@@ -443,7 +441,7 @@ dolet(Char **v, struct command *dummy)
 		}
 		if (c != '=')
 		    stderror(ERR_NAME | ERR_UNKNOWNOP);
-		p = xset(p, &vheap);
+		p = xset(p, &v);
 	    }
 	}
 	cleanup_push(p, xfree);
@@ -475,8 +473,7 @@ dolet(Char **v, struct command *dummy)
 	}
 	update_vars(vp);
 	cleanup_until(vp);
-    } while ((p = *vheap++) != NULL);
-    cleanup_until(vsav);
+    } while ((p = *v++) != NULL);
 }
 
 static Char *
