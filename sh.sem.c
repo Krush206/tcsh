@@ -113,6 +113,7 @@ static	int		 kwprop		(struct CommandList *);
 static	void		 Lfix		(struct command *);
 static	void		 Lfix1		(struct command *);
 static	void		 dolalloc	(struct command *);
+static	void		 pasterr	(struct CommandList *);
 
 /*
  * C shell
@@ -1136,10 +1137,16 @@ fnexec(struct CommandList **lp,
     struct CommandList *ptr;
 
     for (ptr = *lp; ptr != hp; ptr = ptr->next) {
+	size_t omark;
+
+	if (ptr == &fntmp)
+	    pasterr(hp->enc);
 	dolptr = &doltmp;
 	cleanup_push(&doltmp, doltmp_cleanup);
+	omark = cleanup_push_mark();
 	Lfix(ptr->t);
 	execute(ptr->t, wanttty, NULL, NULL, do_glob);
+	cleanup_pop_mark(omark);
 	cleanup_until(&doltmp);
 	if (ptr->t->t_dtyp != NODE_COMMAND)
 	    continue;
@@ -1581,5 +1588,23 @@ doltmp_cleanup(void *xptr)
 	blkfree(tmp->t->t_dcom);
 	tmp->t->t_dcom = tmp->sav;
 	xfree(tmp);
+    }
+}
+
+static void
+pasterr(struct CommandList *lp)
+{
+    const struct biltins *volatile bp;
+
+    bp = isbfunc(lp->t);
+    setname(bp->bname);
+    switch (lp->type) {
+    case TC_WHILE:
+    case TC_FOREACH:
+	stderror(ERR_NAME | ERR_NOTFOUND, "end");
+    case TC_IF:
+	stderror(ERR_NAME | ERR_NOTFOUND, "endif");
+    case TC_SWITCH:
+	stderror(ERR_NAME | ERR_NOTFOUND, "endsw");
     }
 }
