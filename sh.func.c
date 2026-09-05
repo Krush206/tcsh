@@ -528,8 +528,6 @@ doexit(Char **v, struct command *c)
 	    stderror(ERR_NAME | ERR_EXPRESSION);
     }
     btoeof();
-    for (ptr = fntmp.next; ptr != &fntmp; ptr = ptr->next)
-	ptr->ret = 1;
 #if 0
     if (intty)
 #endif
