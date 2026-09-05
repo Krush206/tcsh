@@ -1148,6 +1148,8 @@ fnexec(struct CommandList **lp,
 	execute(ptr->t, wanttty, NULL, NULL, do_glob);
 	cleanup_pop_mark(omark);
 	cleanup_until(&doltmp);
+	if (ptr->type == TC_EXIT)
+	    reset();
 	if (ptr->t->t_dtyp != NODE_COMMAND)
 	    continue;
 	switch (kwprop(ptr)) {
